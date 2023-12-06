@@ -60,9 +60,6 @@ Games ParseGames(const string& line) {
 int main(int argc, char* argv[]) {
     fstream input("input.txt");
     string line;
-    const int kMaxRed = 12;
-    const int kMaxGreen = 13;
-    const int kMaxBlue = 14;
     int total = 0;
     while (getline(input, line)) {
         const Games games = ParseGames(line);
