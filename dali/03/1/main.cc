@@ -4,11 +4,6 @@
 
 using namespace std;
 
-struct Point {
-    int x = 0;
-    int y = 0;
-};
-
 inline bool HasSymbolCloseBy(const vector<vector<char>>& schematic, const int row, const int column) {
     if ((!isdigit(schematic[row    ][column + 1]) && schematic[row    ][column + 1] != '.') ||
         (!isdigit(schematic[row + 1][column + 1]) && schematic[row + 1][column + 1] != '.') ||
