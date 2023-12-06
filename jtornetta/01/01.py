@@ -1,3 +1,4 @@
+# AOC 2023 Day 1, Part 1
 def get_calibration_digits(line):
     digits = [ch for ch in line if ch.isdigit()]
 
