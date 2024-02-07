@@ -74,9 +74,9 @@ vector<Mapping> ParseRanges(istream& input) {
     return mappings;
 }
 
-bool MapSingle(const Mapping& mapping, const Range& range, vector<Range>& unmapped, Range& mapped) {
+// Returns true if a portion was mapped
+bool MapSingle(const Range& range, const Mapping& mapping, vector<Range>& unmapped, vector<Range>& mapped) {
     if ((range.end <= mapping.source.start) || (range.start >= mapping.source.end)) {
-        unmapped.push_back(range);
         return false;
     }
 
@@ -84,58 +84,17 @@ bool MapSingle(const Mapping& mapping, const Range& range, vector<Range>& unmapp
         unmapped.emplace_back(range.start, mapping.source.start);
     }
 
+    Range mapped_range;
     const long long diff = (mapping.dest.start - mapping.source.start);
-    mapped.start = max(mapping.source.start, range.start) + diff;
-    mapped.end = min(mapping.source.end, range.end) + diff;
+    mapped_range.start = max(mapping.source.start, range.start) + diff;
+    mapped_range.end = min(mapping.source.end, range.end) + diff;
+    mapped.push_back(mapped_range);
 
     if (range.end > mapping.source.end) {
         unmapped.emplace_back(mapping.source.end, range.end);
     }
 
     return true;
-}
-
-struct MapQuery {
-    Range range;
-    int level = 0;
-};
-
-vector<Range> Map(const vector<vector<Mapping>>& mappings, Range start) {
-    vector<MapQuery> map_queries;
-    map_queries.emplace_back(start, 0);
-
-    vector<Range> results;
-    while (!map_queries.empty()) {
-        MapQuery map_query = map_queries.back();
-        map_queries.pop_back();
-
-        if (map_query.level == 7) {
-            results.emplace_back(map_query.range);
-            continue;
-        }
-
-        bool mapping_found = false;
-        for (const Mapping& mapping : mappings.at(map_query.level)) {
-            vector<Range> unmapped;
-            Range mapped;
-            mapping_found = MapSingle(mapping, map_query.range, unmapped, mapped);
-            if (mapping_found) {
-                for (const Range& range : unmapped) {
-                    map_queries.emplace_back(range, map_query.level);
-                }
-                map_queries.emplace_back(mapped, map_query.level + 1);
-                break;
-            } else {
-                continue;
-            }
-        }
-
-        if (!mapping_found) {
-            map_queries.emplace_back(map_query.range, map_query.level + 1);
-        }
-    }
-
-    return results;
 }
 
 int main(int argc, char* argv[]) {
@@ -146,21 +105,50 @@ int main(int argc, char* argv[]) {
     getline(input, line);  // newline
 
     const int kMappings = 7;
-    vector<vector<Mapping>> mappings;
+    vector<vector<Mapping>> all_mappings;
     for (int i = 0; i < kMappings; ++i) {
-        mappings.emplace_back(ParseRanges(input));
+        all_mappings.emplace_back(ParseRanges(input));
     }
 
-    long long lowest = numeric_limits<long long>::max();
-    for (const Range& seed : seeds) {
-        vector<Range> mapped = Map(mappings, seed);
-        for (const Range& final : mapped) {
-            if (final.start < lowest) {
-                lowest = final.start;
-            }
+    for (auto mappings : all_mappings) {
+        cout << "mapping:" << endl;
+        for (auto mapping : mappings) {
+            cout << mapping.dest.start << "," << mapping.dest.end;
+            cout << " <- " << mapping.source.start << "," << mapping.source.end << endl;
         }
     }
 
-    cout << "Lowest: " << lowest << endl;
+    long long lowest = numeric_limits<long long>::max();
+    for (auto seed : seeds) {
+        vector<Range> ranges_to_map = { seed };
+        vector<Range> mapped;
+        for (auto mappings : all_mappings) {
+            mapped.clear();
+            while (!ranges_to_map.empty()) {
+                Range range = ranges_to_map.back();
+                ranges_to_map.pop_back();
+                bool was_mapped = false;
+                for (auto mapping : mappings) {
+                    if (MapSingle(range, mapping, ranges_to_map, mapped)) {
+                        was_mapped = true;
+                        break;
+                    }
+                }
+                if (!was_mapped) {
+                    mapped.push_back(range);
+                }
+            }
+            ranges_to_map = mapped;
+        }
+
+        cout << "seed " << seed.start << "," << seed.end << " mapped to ";
+        for (auto mapped_seed : mapped) {
+            if (mapped_seed.start < lowest) {
+                lowest = mapped_seed.start;
+            }
+        }
+        cout << lowest << endl;
+    }
+
     return 0;
 }
